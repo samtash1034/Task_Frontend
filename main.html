@@ -72,6 +72,133 @@
         color: #dc3545;
         font-weight: 700;
       }
+
+      /* 任務看板樣式 */
+      .task-board {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background: white;
+      }
+      .task-header {
+        background-color: #f8f9fa;
+        padding: 15px 20px;
+        border-bottom: 1px solid #e0e0e0;
+        font-weight: 600;
+        color: #495057;
+      }
+      .task-row {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        min-height: 60px;
+      }
+      .task-row:hover {
+        background-color: #f8f9fa;
+      }
+      .task-checkbox {
+        width: 18px;
+        height: 18px;
+        margin-right: 15px;
+      }
+      .task-name {
+        flex: 1;
+        font-size: 16px;
+        border: none;
+        background: transparent;
+        padding: 5px;
+        border-radius: 4px;
+      }
+      .task-name:focus {
+        background-color: #fff;
+        border: 1px solid #0d6efd;
+        outline: none;
+      }
+      .task-owner {
+        width: 150px;
+        text-align: center;
+        color: #6c757d;
+      }
+      .task-status {
+        width: 200px;
+        position: relative;
+      }
+      .status-badge {
+        display: inline-block;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        width: 140px;
+        text-align: center;
+      }
+      .status-ready {
+        background-color: #6c757d;
+        color: white;
+      }
+      .status-progress {
+        background-color: #ffc107;
+        color: #212529;
+      }
+      .status-done {
+        background-color: #198754;
+        color: white;
+      }
+      .status-stuck {
+        background-color: #dc3545;
+        color: white;
+      }
+      .status-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 1000;
+        margin-top: 5px;
+      }
+      .status-option {
+        padding: 8px 16px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        border-radius: 6px;
+        margin: 4px;
+        font-size: 14px;
+      }
+      .status-option:hover {
+        background-color: #f0f0f0;
+      }
+      .add-task-row {
+        padding: 15px 20px;
+        color: #6c757d;
+        border-bottom: none;
+      }
+      .add-task-row input:focus {
+        color: #495057;
+        background-color: #fff;
+      }
+      .task-actions {
+        width: 80px;
+        text-align: center;
+      }
+      .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        font-size: 14px;
+        font-weight: 500;
+      }
     </style>
   </head>
   <body>
@@ -108,6 +235,15 @@
       };
 
       let userList = [];
+      let taskList = [];
+
+      // 狀態選項配置
+      const statusOptions = [
+        { value: 0, label: "未開始", class: "status-ready" },
+        { value: 1, label: "進行中", class: "status-progress" },
+        { value: 2, label: "已完成", class: "status-done" },
+        { value: 3, label: "終止", class: "status-stuck" },
+      ];
 
       axios
         .get("http://localhost:8080/api/menu", axiosConfig)
@@ -308,37 +444,216 @@
 
       function loadTasks() {
         axios.get("http://localhost:8080/api/task", axiosConfig).then((res) => {
-          const tasks = res.data.result;
-          let html = `<h4 class="mb-3">任務列表</h4>
-            <table class="table table-bordered table-hover align-middle">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>任務名稱</th>
-                  <th>狀態</th>
-                  <th>到期日</th>
-                  <th>使用者</th>
-                  <th style="width: 100px;">操作</th>
-                </tr>
-              </thead>
-              <tbody>`;
-          tasks.forEach((t) => {
-            html += `<tr>
-              <td>${t.id}</td>
-              <td>${t.taskName}</td>
-              <td>${t.status == 1 ? "完成" : "未完成"}</td>
-              <td>${t.dueDate}</td>
-              <td>${t.userName}</td>
-              <td>
-                <button class="btn btn-sm btn-danger" onclick="deleteTask(${
-                  t.id
-                })">刪除</button>
-              </td>
-            </tr>`;
-          });
-          html += `</tbody></table>`;
-          document.getElementById("content").innerHTML = html;
+          taskList = res.data.result;
+          renderTaskBoard();
         });
+      }
+
+      function renderTaskBoard() {
+        let html = `
+          <h4 class="mb-3">任務列表</h4>
+          <div class="task-board">
+            <div class="task-header d-flex">
+              <div style="width: 50px;"></div>
+              <div style="flex: 1;">任務</div>
+              <div style="width: 150px; text-align: center;">Owner</div>
+              <div style="width: 200px; text-align: center;">Status</div>
+              <div style="width: 150px; text-align: center;">日期</div>
+              <div style="width: 80px; text-align: center;">操作</div>
+            </div>
+        `;
+
+        taskList.forEach((task) => {
+          const statusOption =
+            statusOptions.find((s) => s.value == task.status) ||
+            statusOptions[0];
+          const userInitial = task.userName ? task.userName : "?";
+
+          html += `
+            <div class="task-row">
+              <input type="checkbox" class="task-checkbox" ${
+                task.status == 2 ? "checked" : ""
+              } 
+                     onchange="toggleTaskComplete(${task.id}, this.checked)">
+              <input type="text" class="task-name" value="${task.taskName}" 
+                     onblur="updateTaskName(${task.id}, this.value)"
+                     onkeydown="if(event.key==='Enter') this.blur()">
+              <div class="task-owner">
+                <div class="user-avatar">${userInitial}</div>
+              </div>
+              <div class="task-status">
+                <button class="status-badge ${
+                  statusOption.class
+                }" onclick="toggleStatusDropdown(${task.id})">
+                  ${statusOption.label}
+                </button>
+                <div id="status-dropdown-${
+                  task.id
+                }" class="status-dropdown" style="display: none;">
+                  ${statusOptions
+                    .map(
+                      (option) =>
+                        `<div class="status-option ${option.class}" onclick="updateTaskStatus(${task.id}, ${option.value})">${option.label}</div>`
+                    )
+                    .join("")}
+                </div>
+              </div>
+              <div style="width: 150px; text-align: center;">
+                <input type="date" class="form-control form-control-sm" value="${
+                  task.dueDate || ""
+                }" 
+                       onchange="updateTaskDate(${
+                         task.id
+                       }, this.value)" style="font-size: 12px;">
+              </div>
+              <div class="task-actions">
+                <button class="btn btn-sm btn-danger" onclick="deleteTask(${
+                  task.id
+                })">刪除</button>
+              </div>
+            </div>
+          `;
+        });
+
+        html += `
+            <div class="task-row add-task-row">
+              <div style="width: 50px;"></div>
+              <input type="text" class="task-name" placeholder="+ 新增任務" 
+                     onkeydown="handleNewTaskKeydown(event)"
+                     onblur="handleNewTaskBlur(event)"
+                     style="color: #6c757d;">
+              <div style="width: 150px;"></div>
+              <div style="width: 200px;"></div>
+              <div style="width: 150px;"></div>
+              <div style="width: 80px;"></div>
+            </div>
+          </div>
+        `;
+
+        document.getElementById("content").innerHTML = html;
+
+        // 點擊其他地方關閉下拉選單
+        document.addEventListener("click", function (e) {
+          if (!e.target.closest(".task-status")) {
+            document
+              .querySelectorAll(".status-dropdown")
+              .forEach((dropdown) => {
+                dropdown.style.display = "none";
+              });
+          }
+        });
+      }
+
+      function toggleStatusDropdown(taskId) {
+        // 關閉所有其他下拉選單
+        document.querySelectorAll(".status-dropdown").forEach((dropdown) => {
+          if (dropdown.id !== `status-dropdown-${taskId}`) {
+            dropdown.style.display = "none";
+          }
+        });
+
+        // 切換當前下拉選單
+        const dropdown = document.getElementById(`status-dropdown-${taskId}`);
+        dropdown.style.display =
+          dropdown.style.display === "none" ? "block" : "none";
+      }
+
+      function updateTaskStatus(taskId, newStatus) {
+        const task = taskList.find((t) => t.id === taskId);
+        if (task) {
+          task.status = newStatus;
+          axios
+            .put("http://localhost:8080/api/task", task, axiosConfig)
+            .then(() => {
+              renderTaskBoard();
+            })
+            .catch((err) => {
+              alert(err.response?.data?.message || "更新失敗");
+              loadTasks(); // 重新載入資料
+            });
+        }
+      }
+
+      function updateTaskName(taskId, newName) {
+        if (!newName.trim()) return;
+
+        const task = taskList.find((t) => t.id === taskId);
+        if (task && task.taskName !== newName.trim()) {
+          task.taskName = newName.trim();
+          axios
+            .put("http://localhost:8080/api/task", task, axiosConfig)
+            .then(() => {
+              // 更新成功，保持當前顯示
+            })
+            .catch((err) => {
+              alert(err.response?.data?.message || "更新失敗");
+              loadTasks(); // 重新載入資料
+            });
+        }
+      }
+
+      function toggleTaskComplete(taskId, isComplete) {
+        const newStatus = isComplete ? 2 : 0; // 2=已完成, 0=未開始
+        updateTaskStatus(taskId, newStatus);
+      }
+
+      function updateTaskDate(taskId, newDate) {
+        const task = taskList.find((t) => t.id === taskId);
+        if (task) {
+          task.dueDate = newDate;
+          axios
+            .put("http://localhost:8080/api/task", task, axiosConfig)
+            .then(() => {
+              // 更新成功，保持當前顯示
+            })
+            .catch((err) => {
+              alert(err.response?.data?.message || "更新日期失敗");
+              loadTasks(); // 重新載入資料
+            });
+        }
+      }
+
+      function handleNewTaskKeydown(event) {
+        if (event.key === "Enter") {
+          const taskName = event.target.value.trim();
+          if (taskName && taskName !== "+ 新增任務") {
+            addNewTask(taskName);
+            event.target.value = "";
+            event.target.placeholder = "+ 新增任務";
+          }
+        }
+      }
+
+      function handleNewTaskBlur(event) {
+        const taskName = event.target.value.trim();
+        if (taskName && taskName !== "+ 新增任務") {
+          addNewTask(taskName);
+          event.target.value = "";
+          event.target.placeholder = "+ 新增任務";
+        }
+      }
+
+      function addNewTask(taskName) {
+        if (!taskName) {
+          const newTaskName = prompt("請輸入任務名稱:");
+          if (!newTaskName || !newTaskName.trim()) return;
+          taskName = newTaskName.trim();
+        }
+
+        const newTask = {
+          taskName: taskName,
+          status: 0, // 未開始
+          dueDate: new Date().toISOString().split("T")[0], // 今天
+        };
+
+        axios
+          .post("http://localhost:8080/api/task", newTask, axiosConfig)
+          .then(() => {
+            loadTasks(); // 重新載入任務列表
+          })
+          .catch((err) => {
+            alert(err.response?.data?.message || "新增任務失敗");
+          });
       }
 
       function deleteTask(id) {
