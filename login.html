@@ -38,24 +38,20 @@
       }
 
       .login-container {
-        background: rgba(255, 255, 255, 0.15);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 20px;
+        background: transparent;
         padding: 40px;
         width: 100%;
         max-width: 400px;
         text-align: center;
         z-index: 2;
         position: relative;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
       }
 
       .login-title {
         font-size: 32px;
         font-weight: 300;
         color: white;
-        margin-bottom: 8px;
+        margin-bottom: 30px;
         letter-spacing: 1px;
       }
 
@@ -136,81 +132,6 @@
         transform: none;
       }
 
-      .login-options {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin: 20px 0;
-        font-size: 14px;
-      }
-
-      .remember-me {
-        display: flex;
-        align-items: center;
-        color: rgba(255, 255, 255, 0.8);
-      }
-
-      .remember-me input {
-        margin-right: 8px;
-        accent-color: #ff6b6b;
-      }
-
-      .forgot-password {
-        color: rgba(255, 255, 255, 0.8);
-        text-decoration: none;
-        transition: color 0.3s ease;
-      }
-
-      .forgot-password:hover {
-        color: white;
-      }
-
-      .divider {
-        margin: 30px 0;
-        position: relative;
-        text-align: center;
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 14px;
-      }
-
-      .divider::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: rgba(255, 255, 255, 0.3);
-      }
-
-      .divider span {
-        background: transparent;
-        padding: 0 20px;
-      }
-
-      .social-buttons {
-        display: flex;
-        gap: 15px;
-      }
-
-      .social-button {
-        flex: 1;
-        padding: 12px;
-        background: rgba(255, 255, 255, 0.9);
-        color: #333;
-        border: none;
-        border-radius: 50px;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-
-      .social-button:hover {
-        background: white;
-        transform: translateY(-2px);
-      }
-
       .error-message {
         background: rgba(220, 53, 69, 0.9);
         color: white;
@@ -252,17 +173,12 @@
           padding: 30px 20px;
           margin: 20px;
         }
-
-        .social-buttons {
-          flex-direction: column;
-        }
       }
     </style>
   </head>
   <body>
     <div class="login-container">
-      <h1 class="login-title">Login #10</h1>
-      <p class="login-subtitle">Have an account?</p>
+      <h1 class="login-title">Login</h1>
 
       <form id="loginForm">
         <div class="form-group">
@@ -270,7 +186,7 @@
             type="text"
             id="account"
             class="form-input"
-            placeholder="Username"
+            placeholder="Account"
             required
           />
         </div>
@@ -295,23 +211,6 @@
         <button type="submit" id="loginBtn" class="login-button">
           SIGN IN
         </button>
-
-        <div class="login-options">
-          <label class="remember-me">
-            <input type="checkbox" id="rememberMe" />
-            Remember Me
-          </label>
-          <a href="#" class="forgot-password">Forgot Password</a>
-        </div>
-
-        <div class="divider">
-          <span>— Or Sign In With —</span>
-        </div>
-
-        <div class="social-buttons">
-          <button type="button" class="social-button">Facebook</button>
-          <button type="button" class="social-button">Twitter</button>
-        </div>
 
         <div id="errorMessage" class="error-message"></div>
       </form>
@@ -415,14 +314,6 @@
       // 輸入時清除錯誤訊息
       document.getElementById("account").addEventListener("input", hideError);
       document.getElementById("password").addEventListener("input", hideError);
-
-      // 社交登入按鈕事件
-      document.querySelectorAll(".social-button").forEach((button) => {
-        button.addEventListener("click", function () {
-          const platform = this.textContent;
-          showError(`${platform} login not implemented yet`);
-        });
-      });
     </script>
   </body>
 </html>
