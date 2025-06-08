@@ -275,6 +275,107 @@
       .btn-delete:hover {
         transform: scale(1.1);
       }
+
+      /* 時間表樣式 */
+      .timetable-container {
+        overflow-x: auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+      }
+      .timetable {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 900px;
+      }
+      .timetable th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 10px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 16px;
+        border: 2px solid #e9ecef;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .timetable td {
+        border: 2px solid #e9ecef;
+        padding: 8px;
+        text-align: center;
+        vertical-align: middle;
+        background: white;
+        transition: background-color 0.2s;
+      }
+      .time-cell {
+        background-color: #f8f9fa !important;
+        font-weight: 600;
+        color: #495057;
+        width: 120px;
+        font-size: 14px;
+        position: sticky;
+        left: 0;
+        z-index: 5;
+      }
+      .schedule-input {
+        width: 100%;
+        border: none;
+        background: transparent;
+        text-align: center;
+        padding: 8px 4px;
+        font-size: 14px;
+        border-radius: 4px;
+        transition: all 0.2s;
+        min-height: 40px;
+      }
+      .schedule-input:focus {
+        background-color: #fff3cd;
+        border: 2px solid #ffc107;
+        outline: none;
+        box-shadow: 0 0 5px rgba(255, 193, 7, 0.3);
+      }
+      .schedule-input:not(:placeholder-shown) {
+        background-color: #e3f2fd;
+        font-weight: 500;
+      }
+      .timetable tr:hover td:not(.time-cell) {
+        background-color: #f8f9fa;
+      }
+      .day-header {
+        width: 140px;
+      }
+
+      /* 響應式設計 */
+      @media (max-width: 768px) {
+        .main-content {
+          padding: 20px 15px;
+        }
+        .page-title {
+          font-size: 2rem;
+        }
+        .timetable-container {
+          margin: 0 -15px;
+        }
+      }
+
+      /* 特殊時間段樣式 */
+      .sleep-time .schedule-input:not(:placeholder-shown) {
+        background-color: #e8f5e8;
+        color: #2e7d32;
+      }
+      .meal-time .schedule-input:not(:placeholder-shown) {
+        background-color: #fff3e0;
+        color: #f57c00;
+      }
+      .class-time .schedule-input:not(:placeholder-shown) {
+        background-color: #e3f2fd;
+        color: #1976d2;
+      }
+      .exercise-time .schedule-input:not(:placeholder-shown) {
+        background-color: #fce4ec;
+        color: #c2185b;
+      }
     </style>
   </head>
   <body>
@@ -289,7 +390,7 @@
         <!-- Main Content Area -->
         <div class="col-md-10 main-content">
           <div class="header-section">
-            <h1 class="page-title">Schedule</h1>
+            <h1 class="page-title" id="page-title">Schedule</h1>
             <button class="btn logout-btn" onclick="logout()">
               <i class="fas fa-sign-out-alt me-2"></i>Logout
             </button>
@@ -317,6 +418,18 @@
 
       let userList = [];
       let taskList = [];
+      let scheduleData = [];
+      let currentPage = "task"; // 追蹤當前頁面
+
+      const dayMapping = {
+        monday: "星期一",
+        tuesday: "星期二",
+        wednesday: "星期三",
+        thursday: "星期四",
+        friday: "星期五",
+        saturday: "星期六",
+        sunday: "星期日",
+      };
 
       // Status options configuration
       const statusOptions = [
@@ -351,10 +464,17 @@
         });
 
       function handleMenuClick(menuId) {
+        currentPage = menuId;
+
         if (menuId === "user") {
+          document.getElementById("page-title").textContent = "User Management";
           loadUsers();
         } else if (menuId === "task") {
+          document.getElementById("page-title").textContent = "Task Management";
           loadTasks();
+        } else if (menuId === "timeSchedule") {
+          document.getElementById("page-title").textContent = "時間規劃表";
+          loadTimeSchedule();
         }
       }
 
@@ -772,6 +892,200 @@
           .delete(`http://localhost:8080/api/task/${id}`, axiosConfig)
           .then(() => loadTasks());
       }
+
+      // 時間規劃表相關功能
+      function loadTimeSchedule() {
+        axios
+          .get("http://localhost:8080/api/timeSchedule", axiosConfig)
+          .then((res) => {
+            scheduleData = res.data.result;
+            if (scheduleData.length === 0) {
+              // 如果沒有數據，顯示初始化提示
+              showTimeScheduleInitMessage();
+            } else {
+              renderTimeTable();
+            }
+          })
+          .catch((err) => {
+            console.error("載入時間表失敗:", err);
+            alert("載入時間表失敗，請重試");
+          });
+      }
+
+      function showTimeScheduleInitMessage() {
+        document.getElementById("content").innerHTML = `
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0" style="font-weight: 600; color: #495057">
+              詳細時間規劃表
+            </h4>
+            <div>
+              <button class="btn btn-primary me-2" onclick="initTimeSchedule()">
+                <i class="fas fa-plus me-2"></i>建立時間規劃表
+              </button>
+              <button class="btn btn-success" onclick="saveAllSchedules()">
+                <i class="fas fa-save me-2"></i>儲存所有變更
+              </button>
+            </div>
+          </div>
+          <div class="text-center p-5">
+            <div class="text-muted">
+              <i class="fas fa-calendar-plus fa-3x mb-3"></i>
+              <h5>尚未建立時間規劃表</h5>
+              <p>點擊上方「建立時間規劃表」按鈕來初始化您的時間規劃</p>
+            </div>
+          </div>
+        `;
+      }
+
+      function initTimeSchedule() {
+        if (confirm("確定要建立新的時間規劃表嗎？這將會初始化固定的時間段。")) {
+          axios
+            .post(
+              "http://localhost:8080/api/timeSchedule/init",
+              {},
+              axiosConfig
+            )
+            .then((res) => {
+              alert(res.data.message || "時間規劃表建立成功！");
+              loadTimeSchedule(); // 重新載入數據
+            })
+            .catch((err) => {
+              alert(`建立失敗: ${err.response?.data?.message || "請重試"}`);
+            });
+        }
+      }
+
+      function renderTimeTable() {
+        let html = `
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0" style="font-weight: 600; color: #495057">
+              詳細時間規劃表
+            </h4>
+            <div>
+              <button class="btn btn-success" onclick="saveAllSchedules()">
+                <i class="fas fa-save me-2"></i>儲存所有變更
+              </button>
+            </div>
+          </div>
+          <div class="timetable-container">
+            <table class="timetable">
+              <thead>
+                <tr>
+                  <th class="time-cell">時間</th>
+                  <th class="day-header">星期一</th>
+                  <th class="day-header">星期二</th>
+                  <th class="day-header">星期三</th>
+                  <th class="day-header">星期四</th>
+                  <th class="day-header">星期五</th>
+                  <th class="day-header">星期六</th>
+                  <th class="day-header">星期日</th>
+                </tr>
+              </thead>
+              <tbody id="timetable-body">
+        `;
+
+        scheduleData.forEach((schedule) => {
+          // 判斷時間段類型以添加相應的樣式類
+          let timeClass = "";
+          const startHour = parseInt(schedule.startTime.split(":")[0]);
+          if (startHour >= 0 && startHour < 8) {
+            timeClass = "sleep-time";
+          } else if (startHour === 12 || startHour === 18) {
+            timeClass = "meal-time";
+          } else if (startHour >= 8 && startHour < 17) {
+            timeClass = "class-time";
+          } else if (startHour >= 16 && startHour < 18) {
+            timeClass = "exercise-time";
+          }
+
+          html += `
+            <tr class="${timeClass}">
+              <td class="time-cell">${schedule.startTime.substring(
+                0,
+                5
+              )}-${schedule.endTime.substring(0, 5)}</td>
+          `;
+
+          [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday",
+          ].forEach((day) => {
+            html += `
+              <td>
+                <input type="text" class="schedule-input" 
+                       value="${schedule[day] || ""}" 
+                       placeholder="點擊輸入活動"
+                       onblur="updateSchedule(${
+                         schedule.id
+                       }, '${day}', this.value)"
+                       onkeydown="if(event.key==='Enter') this.blur()">
+              </td>
+            `;
+          });
+
+          html += `</tr>`;
+        });
+
+        html += `
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        document.getElementById("content").innerHTML = html;
+      }
+
+      function updateSchedule(scheduleId, dayField, value) {
+        const schedule = scheduleData.find((s) => s.id === scheduleId);
+        if (schedule) {
+          schedule[dayField] = value.trim() || null;
+
+          // 即時更新到後端
+          axios
+            .put(
+              "http://localhost:8080/api/timeSchedule",
+              schedule,
+              axiosConfig
+            )
+            .then(() => {
+              // 更新成功，可以添加視覺反饋
+              console.log(
+                `已更新 ${dayMapping[dayField]} ${schedule.startTime}-${schedule.endTime}: ${value}`
+              );
+            })
+            .catch((err) => {
+              alert(`更新失敗: ${err.response?.data?.message || "請重試"}`);
+              // 重新載入數據以恢復原狀
+              loadTimeSchedule();
+            });
+        }
+      }
+
+      function saveAllSchedules() {
+        const updatePromises = scheduleData.map((schedule) =>
+          axios.put(
+            "http://localhost:8080/api/timeSchedule",
+            schedule,
+            axiosConfig
+          )
+        );
+
+        Promise.all(updatePromises)
+          .then(() => {
+            alert("所有變更已成功儲存！");
+          })
+          .catch((err) => {
+            alert(`儲存失敗: ${err.response?.data?.message || "請重試"}`);
+          });
+      }
+
+      // 初始載入任務管理頁面
+      loadTasks();
     </script>
   </body>
 </html>
